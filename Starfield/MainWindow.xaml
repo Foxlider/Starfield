@@ -1,0 +1,18 @@
+﻿<Window x:Class="Starfield.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Canvas x:Name="canvas" Background="Black" Width="auto" Height="auto">
+
+        </Canvas>
+        <Label Name="fpsCounter" HorizontalAlignment="Left" Foreground="White" VerticalAlignment="Top" FontFamily="Consolas" />
+        <Label Name="fpsCounter2" HorizontalAlignment="Left" Foreground="White" VerticalAlignment="Top" FontFamily="Consolas" Margin="0,15,0,0" />
+        <Slider Minimum="16.0" Maximum="250.0" Value="250" ValueChanged="Slider_ValueChanged" VerticalAlignment="Bottom"/>
+    </Grid>
+</Window>
