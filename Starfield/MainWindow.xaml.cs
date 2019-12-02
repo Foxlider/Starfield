@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,7 +9,6 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 
 using Color = System.Windows.Media.Color;
-using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace Starfield
 {
@@ -17,25 +17,28 @@ namespace Starfield
     /// </summary>
     public partial class MainWindow
     {
-        readonly      Random          r         = new Random();
-        private const int             MAX_DEPTH = 32;
-        private const int             STAR_NBR  = 200;
-        private       List<Star>      stars     = new List<Star>();
-        readonly      DispatcherTimer timer     = new DispatcherTimer();
-        readonly      DispatcherTimer fpsTimer  = new DispatcherTimer();
-        readonly      DispatcherTimer fpsTimer2 = new DispatcherTimer();
-        private       int             framesExecuted;
-        private       int             frameCount;
-        private double kValue = 128.0;
+        private readonly Random          r          = new Random();
+        private const    int             MAX_DEPTH  = 64;
+        private const    int             STAR_NBR   = 200;
+        private const    int             TARGET_FPS = 60;
+        private          List<Star>      stars      = new List<Star>();
+        readonly         DispatcherTimer timer      = new DispatcherTimer();
+        readonly         DispatcherTimer fpsTimer   = new DispatcherTimer();
+        readonly         DispatcherTimer fpsTimer2  = new DispatcherTimer();
+        private          int             framesExecuted;
+        private          int             frameCount;
+        private          double          halfWidth;
+        private          double          halfHeight;
+        private          double          kValue = 128.0;
 
-        private Stopwatch clock;
-        private Stopwatch watch;
+        private readonly Stopwatch clock;
+        private readonly Stopwatch watch;
 
         public MainWindow()
         {
             InitializeComponent();
             initStars();
-            timer.Interval =  new TimeSpan(0, 0, 0, 0, 1);
+            timer.Interval = TimeSpan.FromMilliseconds(1000.0/TARGET_FPS);
             timer.Tick     += Loop;
             timer.Start();
             fpsTimer.Tick     += FpsCounter;
@@ -46,24 +49,23 @@ namespace Starfield
             clock = new Stopwatch();
             watch = new Stopwatch();
             watch.Start();
+
             ConsoleAllocator.ShowConsoleWindow();
         }
 
         private void FpsCounter(object sender, EventArgs e)
         {
-            frameCount ++;
-            if (watch.ElapsedMilliseconds > 1000)
-            {
-                watch.Restart();
-                fpsCounter.Content = $"{frameCount.ToString().PadRight(5)} FPS (Render)";
-                frameCount         = 0;
-            }
+            frameCount++;
+            if (watch.ElapsedMilliseconds <= 1000) return;
+            watch.Restart();
+            fpsCounter.Content = $"{frameCount.ToString().PadRight(5)} FPS (Render)";
+            frameCount = 0;
         }
 
         private void FpsCounter2(object sender, EventArgs e)
         {
             fpsCounter2.Content = $"{framesExecuted.ToString().PadRight(5)} FPS (Processing)";
-            framesExecuted      = 0;
+            framesExecuted = 0;
         }
 
         /// <summary>
@@ -71,22 +73,20 @@ namespace Starfield
         /// </summary>
         private void initStars()
         {
-            var halfWidth  = canvas.ActualWidth  / 2;
-            var halfHeight = canvas.ActualHeight / 2;
+            halfWidth  = canvas.ActualWidth  / 2;
+            halfHeight = canvas.ActualHeight / 2;
 
             for( var i = 0; i < STAR_NBR; i++ )
             {
-                var star = new Star(X: r.Next(-20, 20),
-                                    Y: r.Next(-20, 20),
-                                    Z: r.Next(MAX_DEPTH/2,   MAX_DEPTH));
+                var star = new Star(X: r.Next(-2000, 2000)/100.0,
+                                    Y: r.Next(-2000, 2000)/100.0,
+                                    Z: r.Next(1,   MAX_DEPTH));
 
                 var k  = kValue / star.z;
                 var px = star.x * k + halfWidth;
                 var py = star.y * k + halfHeight;
 
                 var shade = Convert.ToInt32((1 - star.z / MAX_DEPTH) * 255);
-                px = star.x * k + halfWidth;
-                py = star.y * k + halfHeight;
                 var color = Color.FromArgb(255, (byte) shade, (byte) shade, (byte) shade);
 
                 (Dispatcher ?? throw new InvalidOperationException()).BeginInvoke(() =>
@@ -101,6 +101,12 @@ namespace Starfield
                         Y2              = py,
                         StrokeThickness = 1
                     };
+                    //tail.Effect = new BlurEffect
+                    //{
+                    //    Radius = 2,
+                    //    KernelType = KernelType.Gaussian,
+                    //    RenderingBias = RenderingBias.Performance
+                    //};
                     star.tail = tail;
                     Canvas.SetLeft(star.tail, px);
                     Canvas.SetTop(star.tail, py);
@@ -119,25 +125,24 @@ namespace Starfield
         private void Loop(object sender, EventArgs e)
         {
             clock.Restart();
-            var halfWidth  = canvas.ActualWidth  / 2;
-            var halfHeight = canvas.ActualHeight / 2;
+            halfWidth  = canvas.ActualWidth  / 2;
+            halfHeight = canvas.ActualHeight / 2;
 
-            foreach (var star in stars) 
-            { DrawStar(star, halfWidth, halfHeight); }
-            
+            foreach (var star in stars)
+            { DrawStar(star); }
+
             framesExecuted++;
             clock.Stop();
-            Debug.WriteLine($"Frame took {clock.ElapsedMilliseconds.ToString().PadLeft(5)}ms to execute ({clock.ElapsedTicks.ToString().PadLeft(10)}ticks)");
+            Console.WriteLine($"Frame took {clock.ElapsedMilliseconds.ToString().PadLeft(5)}ms to execute ({clock.ElapsedTicks.ToString().PadLeft(10)}ticks)");
         }
 
         /// <summary>
         /// Draws a star on the 2d canvas
         /// </summary>
-        /// <param name="star">Star to draw</param>
-        /// <param name="halfWidth">Current half width of the canvas</param>
-        /// <param name="halfHeight">Current half heigth of the canvas</param>
-        private void DrawStar(Star star, double halfWidth, double halfHeight)
+        /// <param name="obj">Star to draw as object</param>
+        private void DrawStar(object obj)
         {
+            Star star = obj as Star;
             //star.z -= 0.2;
             var oldZ = star.z;
             star.z -= (512 - kValue) / 100;
@@ -150,8 +155,8 @@ namespace Starfield
             {
                 do
                 {
-                    star.x = r.Next(-20, 20);
-                    star.y = r.Next(-20, 20);
+                    star.x = r.Next(-2000, 2000) / 100.0;
+                    star.y = r.Next(-2000, 2000) / 100.0;
                     star.z = r.Next(MAX_DEPTH/2,   MAX_DEPTH);
                 }
                 while (star.x == 0 || star.y == 0);
@@ -167,7 +172,7 @@ namespace Starfield
             
             var shade = Convert.ToInt32((1 - star.z / MAX_DEPTH) * 255);
             var color = Color.FromArgb(255, (byte) shade, (byte) shade, (byte) shade);
-;
+
             (Dispatcher ?? throw new InvalidOperationException()).BeginInvoke(() =>
             {
                 //star.tail.Stroke = new LinearGradientBrush(oldColor, color, new Point(1, 1), new Point(0, 0)); //TODO Make gradients that actually works
