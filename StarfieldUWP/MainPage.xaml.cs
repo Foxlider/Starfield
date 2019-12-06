@@ -1,21 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
-using System.Windows.Threading;
 
-using Color = System.Windows.Media.Color;
+using Windows.UI;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls.Primitives;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Shapes;
 
-namespace Starfield
+// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
+
+namespace StarfieldUWP
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public partial class MainWindow
+    public sealed partial class MainPage : Page
     {
+
         private readonly Random          r          = new Random();
         private const    int             MAX_DEPTH  = 64;
         private const    int             STAR_NBR   = 200;
@@ -33,37 +36,35 @@ namespace Starfield
         private readonly Stopwatch clock;
         private readonly Stopwatch watch;
 
-        public MainWindow()
+        public MainPage()
         {
-            InitializeComponent();
+            this.InitializeComponent();
             InitStars();
-            timer.Interval = TimeSpan.FromMilliseconds(1000.0/TARGET_FPS);
+            timer.Interval =  TimeSpan.FromMilliseconds(1000.0 /TARGET_FPS);
             timer.Tick     += Loop;
             timer.Start();
-            fpsTimer.Tick     += FpsCounter;
+            fpsTimer.Tick += FpsCounter;
             fpsTimer.Start();
             fpsTimer2.Interval =  new TimeSpan(0, 0, 0, 1);
-            fpsTimer2.Tick += FpsCounter2;
+            fpsTimer2.Tick     += FpsCounter2;
             fpsTimer2.Start();
             clock = new Stopwatch();
             watch = new Stopwatch();
             watch.Start();
-
-            ConsoleAllocator.ShowConsoleWindow();
         }
 
-        private void FpsCounter(object sender, EventArgs e)
+        private void FpsCounter(object sender, object e)
         {
             frameCount++;
             if (watch.ElapsedMilliseconds <= 1000) return;
             watch.Restart();
-            fpsCounter.Content = $"{frameCount.ToString().PadRight(5)} FPS (Render)";
+            fpsCounter.Text = $"{frameCount.ToString().PadRight(5)} FPS (Render)";
             frameCount = 0;
         }
 
-        private void FpsCounter2(object sender, EventArgs e)
+        private void FpsCounter2(object sender, object e)
         {
-            fpsCounter2.Content = $"{framesExecuted.ToString().PadRight(5)} FPS (Processing)";
+            fpsCounter2.Text = $"{framesExecuted.ToString().PadRight(5)} FPS (Processing)";
             framesExecuted = 0;
         }
 
@@ -88,24 +89,21 @@ namespace Starfield
                 var shade = Convert.ToInt32((1 - star.z / MAX_DEPTH) * 255);
                 var color = Color.FromArgb(255, (byte) shade, (byte) shade, (byte) shade);
 
-                (Dispatcher ?? throw new InvalidOperationException()).BeginInvoke(() =>
+                var brush = new SolidColorBrush(color);
+                Line tail = new Line
                 {
-                    var brush = new SolidColorBrush(color);
-                    Line tail = new Line
-                    {
-                        Fill            = brush,
-                        X1              = px,
-                        X2              = px,
-                        Y1              = py,
-                        Y2              = py,
-                        StrokeThickness = 1
-                    };
+                    Fill            = brush,
+                    X1              = px,
+                    X2              = px,
+                    Y1              = py,
+                    Y2              = py,
+                    StrokeThickness = 1
+                };
 
-                    star.tail = tail;
-                    Canvas.SetLeft(star.tail, px);
-                    Canvas.SetTop(star.tail, py);
-                    canvas.Children.Add(star.tail);
-                }, DispatcherPriority.Send);
+                star.tail = tail;
+                Canvas.SetLeft(star.tail, px);
+                Canvas.SetTop(star.tail, py);
+                canvas.Children.Add(star.tail);
 
                 stars.Add(star);
             }
@@ -116,7 +114,7 @@ namespace Starfield
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Loop(object sender, EventArgs e)
+        private void Loop(object sender, object e)
         {
             clock.Restart();
             halfWidth  = canvas.ActualWidth  / 2;
@@ -127,7 +125,7 @@ namespace Starfield
 
             framesExecuted++;
             clock.Stop();
-            Console.WriteLine($"Frame took {clock.ElapsedMilliseconds.ToString().PadLeft(5)}ms to execute ({clock.ElapsedTicks.ToString().PadLeft(10)}ticks)");
+            Debug.WriteLine($"Frame took {clock.ElapsedMilliseconds.ToString().PadLeft(5)}ms to execute ({clock.ElapsedTicks.ToString().PadLeft(10)}ticks)");
         }
 
         /// <summary>
@@ -166,18 +164,18 @@ namespace Starfield
             var shade = Convert.ToInt32((1 - star.z / MAX_DEPTH) * 255);
             var color = Color.FromArgb(255, (byte) shade, (byte) shade, (byte) shade);
 
-            (Dispatcher ?? throw new InvalidOperationException()).BeginInvoke(() =>
+            _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.High, () =>
             {
                 //star.tail.Stroke = new LinearGradientBrush(oldColor, color, new Point(1, 1), new Point(0, 0)); //TODO Make gradients that actually works
                 star.tail.Stroke = new SolidColorBrush(color);
-                star.tail.X1     = px;
-                star.tail.Y1     = py;
-                star.tail.X2     = oldPx;
-                star.tail.Y2     = oldPy;
+                star.tail.X1 = px;
+                star.tail.Y1 = py;
+                star.tail.X2 = oldPx;
+                star.tail.Y2 = oldPy;
 
                 Canvas.SetLeft(star.tail, 0);
                 Canvas.SetTop(star.tail, 0);
-            },DispatcherPriority.Send);
+            });
         }
 
         /// <summary>
@@ -185,8 +183,11 @@ namespace Starfield
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        { kValue = e.NewValue; }
+
+        private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            kValue = e.NewValue;
+        }
     }
 
     /// <summary>
