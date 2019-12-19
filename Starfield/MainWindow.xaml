@@ -13,6 +13,10 @@
         </Canvas>
         <Label Name="fpsCounter" HorizontalAlignment="Left" Foreground="White" VerticalAlignment="Top" FontFamily="Consolas" />
         <Label Name="fpsCounter2" HorizontalAlignment="Left" Foreground="White" VerticalAlignment="Top" FontFamily="Consolas" Margin="0,15,0,0" />
-        <Slider Minimum="128.0" Maximum="500.0" Value="500" ValueChanged="Slider_ValueChanged" VerticalAlignment="Bottom"/>
+        <Slider Minimum="128.0" Maximum="500.0" Value="500" ClipToBounds="True" IsDirectionReversed="True" ValueChanged="Slider_ValueChanged" VerticalAlignment="Bottom" Margin="10,0"/>
+        <Grid VerticalAlignment="Top" HorizontalAlignment="Right">
+            <Slider Margin="5,5,20,5" Minimum="-2000" Maximum="2000" MinWidth="200" Name="sliderHorOffset" VerticalAlignment="Top" ValueChanged="sliderOffset_ValueChanged"/>
+            <Slider Orientation="Vertical" Maximum="2000" Margin="5,20,5,5" MinHeight="200" Name="sliderVerOffset" HorizontalAlignment="Right" ValueChanged="sliderOffset_ValueChanged" Minimum="-2000"/>
+        </Grid>
     </Grid>
 </Window>

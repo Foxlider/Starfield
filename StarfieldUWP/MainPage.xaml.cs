@@ -39,6 +39,7 @@ namespace StarfieldUWP
         public MainPage()
         {
             this.InitializeComponent();
+            Dispatcher.CurrentPriority = Windows.UI.Core.CoreDispatcherPriority.High;
             InitStars();
             timer.Interval =  TimeSpan.FromMilliseconds(1000.0 /TARGET_FPS);
             timer.Tick     += Loop;
